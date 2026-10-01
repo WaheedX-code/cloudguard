@@ -151,9 +151,10 @@ resource "aws_iam_role_policy_attachment" "jit_broker_basic_logs" {
 }
 
 data "archive_file" "jit_broker" {
-  type        = "zip"
-  source_dir  = "${path.module}/../lambda/jit_broker"
-  output_path = "${path.module}/build/jit_broker.zip"
+  type             = "zip"
+  source_dir       = "${path.module}/../lambda/jit_broker"
+  output_path      = "${path.module}/build/jit_broker.zip"
+  output_file_mode = "0664"
 }
 
 resource "aws_s3_object" "jit_broker_package" {

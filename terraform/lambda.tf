@@ -1,7 +1,8 @@
 data "archive_file" "process_upload" {
-  type        = "zip"
-  source_dir  = "${path.module}/../lambda/process_upload"
-  output_path = "${path.module}/build/process_upload.zip"
+  type             = "zip"
+  source_dir       = "${path.module}/../lambda/process_upload"
+  output_path      = "${path.module}/build/process_upload.zip"
+  output_file_mode = "0664"
 }
 
 resource "aws_s3_object" "process_upload_package" {

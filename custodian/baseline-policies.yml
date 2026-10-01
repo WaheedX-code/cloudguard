@@ -18,7 +18,6 @@ policies:
       baseline, not evidence nothing is wrong elsewhere.
     filters:
       - or:
-          - "tag:BlockPublicAcls": absent
           - not:
               - type: check-public-block
                 BlockPublicAcls: true
@@ -36,7 +35,7 @@ policies:
       addresses, not a bug in this policy.
     filters:
       - type: has-inline-policy
-        state: True
+        value: true
 
   - name: cloudguard-flag-unencrypted-lambda-env-vars
     resource: aws.lambda
@@ -49,3 +48,29 @@ policies:
       - type: value
         key: KMSKeyArn
         value: absent
+
+  - name: cloudguard-s3-uploads-versioning
+    resource: aws.s3
+    description: >
+      Detective only. Flags the uploads data bucket if versioning is
+      anything other than Enabled. Terraform declares versioning only
+      on this bucket, so the check is scoped to it by name.
+    filters:
+      - type: value
+        key: Name
+        op: regex
+        value: "^cloudguard-uploads-"
+      - type: value
+        key: Versioning.Status
+        op: ne
+        value: Enabled
+
+  - name: cloudguard-cloudtrail-log-validation
+    resource: aws.cloudtrail
+    description: >
+      Detective only. Flags any trail with log file validation off, so
+      tampered or deleted log files could go unnoticed.
+    filters:
+      - type: value
+        key: LogFileValidationEnabled
+        value: false
