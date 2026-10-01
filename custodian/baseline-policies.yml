@@ -11,6 +11,11 @@
 policies:
   - name: cloudguard-flag-public-s3-buckets
     resource: aws.s3
+    mode:
+      type: periodic
+      schedule: "rate(1 hour)"
+      role: arn:aws:iam::113410693155:role/cloudguard-custodian-scan
+      runtime: python3.12
     description: >
       Detective only. Flags any bucket whose public access block is not
       fully enabled. Every bucket in this environment's Terraform sets
@@ -27,18 +32,26 @@ policies:
 
   - name: cloudguard-flag-wildcard-iam-roles
     resource: aws.iam-role
+    mode:
+      type: periodic
+      schedule: "rate(1 hour)"
+      role: arn:aws:iam::113410693155:role/cloudguard-custodian-scan
+      runtime: python3.12
     description: >
-      Detective only. Flags any IAM role with an attached policy
-      granting a wildcard action or resource. The
-      standing_developer_access role from terraform/iam.tf is expected
-      to show up here, that is the seeded finding Chain A, Project 2
-      addresses, not a bug in this policy.
+      Detective only. Flags any IAM role that has an inline policy.
+      Inline policies sit outside shared managed policies and are
+      easy to miss in review.
     filters:
       - type: has-inline-policy
         value: true
 
   - name: cloudguard-flag-unencrypted-lambda-env-vars
     resource: aws.lambda
+    mode:
+      type: periodic
+      schedule: "rate(1 hour)"
+      role: arn:aws:iam::113410693155:role/cloudguard-custodian-scan
+      runtime: python3.12
     description: >
       Detective only. Flags any Lambda function without a customer
       managed KMS key protecting its environment variables, a real,
@@ -51,6 +64,11 @@ policies:
 
   - name: cloudguard-s3-uploads-versioning
     resource: aws.s3
+    mode:
+      type: periodic
+      schedule: "rate(1 hour)"
+      role: arn:aws:iam::113410693155:role/cloudguard-custodian-scan
+      runtime: python3.12
     description: >
       Detective only. Flags the uploads data bucket if versioning is
       anything other than Enabled. Terraform declares versioning only
@@ -67,6 +85,11 @@ policies:
 
   - name: cloudguard-cloudtrail-log-validation
     resource: aws.cloudtrail
+    mode:
+      type: periodic
+      schedule: "rate(1 hour)"
+      role: arn:aws:iam::113410693155:role/cloudguard-custodian-scan
+      runtime: python3.12
     description: >
       Detective only. Flags any trail with log file validation off, so
       tampered or deleted log files could go unnoticed.
