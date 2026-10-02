@@ -1,0 +1,30 @@
+version: 0.2
+env:
+  variables:
+    TF_VERSION: "1.16.2"
+phases:
+  build:
+    commands:
+      - |
+        curl -sSfo /tmp/tf.zip "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
+        unzip -q -o /tmp/tf.zip -d /usr/local/bin
+        terraform version
+        git clone --depth 1 "$REPO_URL" /tmp/repo
+        cd /tmp/repo/terraform
+        terraform init -input=false -no-color
+        set +e
+        terraform plan -input=false -no-color -lock=false -detailed-exitcode > /tmp/plan.txt 2>&1
+        RC=$?
+        set -e
+        cat /tmp/plan.txt
+        if [ "$RC" -eq 0 ]; then
+          echo "RESULT: no drift"
+        elif [ "$RC" -eq 2 ]; then
+          echo "RESULT: drift detected"
+          SUMMARY=$(grep -E '^[[:space:]]*# .*(will be|must be)|->|^Plan:' /tmp/plan.txt | head -c 1500)
+          aws sns publish --topic-arn "$SNS_TOPIC_ARN" --subject "CloudGuard drift detected" --message "$SUMMARY"
+        else
+          echo "RESULT: terraform plan failed with exit code $RC"
+          aws sns publish --topic-arn "$SNS_TOPIC_ARN" --subject "CloudGuard drift check FAILED" --message "terraform plan exited with code $RC. Build: $CODEBUILD_BUILD_ID"
+          exit 1
+        fi
