@@ -104,11 +104,10 @@ resource "aws_iam_role_policy" "drift_events_start" {
   })
 }
 
-# Hourly while testing so a scheduled run shows up quickly; switch to
-# rate(1 day) once the evidence is captured.
+# Daily. It ran hourly while testing so a scheduled run showed up quickly.
 resource "aws_cloudwatch_event_rule" "drift_schedule" {
   name                = "${var.environment_name}-drift-check"
-  schedule_expression = "rate(1 hour)"
+  schedule_expression = "rate(1 day)"
 }
 
 resource "aws_cloudwatch_event_target" "drift_check" {

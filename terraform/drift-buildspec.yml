@@ -6,6 +6,8 @@ phases:
   build:
     commands:
       - |
+        cat > /tmp/drift.sh <<'SCRIPT'
+        set -euo pipefail
         curl -sSfo /tmp/tf.zip "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
         unzip -q -o /tmp/tf.zip -d /usr/local/bin
         terraform version
@@ -24,7 +26,14 @@ phases:
           SUMMARY=$(grep -E '^[[:space:]]*# .*(will be|must be)|->|^Plan:' /tmp/plan.txt | head -c 1500)
           aws sns publish --topic-arn "$SNS_TOPIC_ARN" --subject "CloudGuard drift detected" --message "$SUMMARY"
         else
-          echo "RESULT: terraform plan failed with exit code $RC"
-          aws sns publish --topic-arn "$SNS_TOPIC_ARN" --subject "CloudGuard drift check FAILED" --message "terraform plan exited with code $RC. Build: $CODEBUILD_BUILD_ID"
+          echo "terraform plan failed with exit code $RC"
+          exit 1
+        fi
+        SCRIPT
+        if bash /tmp/drift.sh; then
+          echo "drift check finished"
+        else
+          echo "RESULT: drift check failed before completing"
+          aws sns publish --topic-arn "$SNS_TOPIC_ARN" --subject "CloudGuard drift check FAILED" --message "The drift check did not complete. Build: $CODEBUILD_BUILD_ID. See CloudWatch log group /codebuild/cloudguard-drift-check."
           exit 1
         fi
