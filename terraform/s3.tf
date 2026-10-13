@@ -31,6 +31,10 @@ resource "aws_s3_bucket_versioning" "uploads" {
 # scanner to find, never actually sensitive or functional.
 resource "aws_s3_bucket" "legacy_exports" {
   bucket = "${var.environment_name}-legacy-exports-${data.aws_caller_identity.current.account_id}"
+  tags = {
+    DataClassification = "sensitive"
+    ClassifiedBy       = "macie"
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "legacy_exports" {
