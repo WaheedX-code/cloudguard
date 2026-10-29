@@ -18,5 +18,7 @@ resource "aws_s3_object" "dspm_seed_finding" {
     1,"sample record left over from a 2019 migration, never cleaned up",4111111111111111,900-00-1234,AKIAIOSFODNN7EXAMPLE
   CSV
 
-  content_type = "text/csv"
+  content_type           = "text/csv"
+  server_side_encryption = "aws:kms"
+  kms_key_id             = aws_kms_key.uploads_encryption.arn
 }
