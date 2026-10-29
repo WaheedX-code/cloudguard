@@ -1,12 +1,6 @@
-# SEEDED FINDING for Chain B, Project 6 (Attack Path Analysis and
-# Network and Encryption Hardening): the key policy below grants
-# kms:Decrypt and kms:GenerateDataKey to ANY principal in this AWS
-# account, not scoped to the specific roles that actually need to use
-# it (lambda_process_upload). This is one of the most common real KMS
-# mistakes: relying on IAM alone and leaving the key policy itself wide
-# open, when the key policy is the resource-side control that should
-# also be scoped. Left exactly this way on purpose, do not tighten it
-# outside that project's own work.
+# Chain B, Project 6: this was the seeded finding. The key policy used to grant
+# kms:Decrypt and kms:GenerateDataKey to the account root, which hands the
+# decision to any IAM principal in the account. It now names who may use the key.
 resource "aws_kms_key" "uploads_encryption" {
   description             = "Encrypts objects in the uploads bucket"
   deletion_window_in_days = 7
@@ -15,28 +9,38 @@ resource "aws_kms_key" "uploads_encryption" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "EnableRootAccountAdmin"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-        }
-        Action   = "kms:*"
+        Sid       = "KeyAdministrationNoDataUse"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+        Action = [
+          "kms:CreateAlias", "kms:Describe*", "kms:Enable*", "kms:List*", "kms:Put*",
+          "kms:Update*", "kms:Revoke*", "kms:Disable*", "kms:Get*", "kms:Delete*",
+          "kms:TagResource", "kms:UntagResource", "kms:ScheduleKeyDeletion", "kms:CancelKeyDeletion"
+        ]
         Resource = "*"
       },
       {
-        Sid    = "OverlyBroadDecryptGrant"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-        }
-        Action = [
-          "kms:Decrypt",
-          "kms:GenerateDataKey"
-        ]
-        Resource = "*"
-        # No Condition block scoping this to specific roles, this is
-        # the actual seeded gap: any principal that can assume any
-        # role in the account can decrypt with this key.
+        Sid       = "UploadFunctionUsesKeyViaS3"
+        Effect    = "Allow"
+        Principal = { AWS = aws_iam_role.lambda_process_upload.arn }
+        Action    = ["kms:Decrypt", "kms:GenerateDataKey"]
+        Resource  = "*"
+        Condition = { StringEquals = { "kms:ViaService" = "s3.us-east-1.amazonaws.com" } }
+      },
+      {
+        Sid       = "MacieDecryptsForClassification"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/macie.amazonaws.com/AWSServiceRoleForAmazonMacie" }
+        Action    = ["kms:Decrypt"]
+        Resource  = "*"
+      },
+      {
+        Sid       = "DeployUserTestUploadsOnly"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/cloudguard@deploy" }
+        Action    = ["kms:GenerateDataKey"]
+        Resource  = "*"
+        Condition = { StringEquals = { "kms:ViaService" = "s3.us-east-1.amazonaws.com" } }
       }
     ]
   })
