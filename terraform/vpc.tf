@@ -59,10 +59,10 @@ resource "aws_security_group" "lambda_process_upload" {
   vpc_id      = aws_vpc.main.id
 
   egress {
-    description = "SEEDED FINDING: unrestricted egress, see comment above"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "HTTPS to the S3 gateway endpoint prefix list only"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    prefix_list_ids = [aws_vpc_endpoint.s3.prefix_list_id]
   }
 }
