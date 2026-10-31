@@ -60,7 +60,7 @@ data "aws_iam_policy_document" "lambda_process_upload_scoped" {
     effect = "Allow"
 
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.uploads.arn}/*"]
+    resources = ["arn:aws:s3:::${var.environment_name}-*/*"]
   }
 
   # Under-scoping test, performed 2026-09-20 and recorded in section 3.4 of
